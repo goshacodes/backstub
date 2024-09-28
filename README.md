@@ -1,4 +1,4 @@
-[![GitHub Release](https://img.shields.io/github/v/release/goshacodes/backstub?color=blue])()
+![GitHub Release](https://img.shields.io/github/v/release/goshacodes/backstub?color=blue])
 
 ## Backstub
 
