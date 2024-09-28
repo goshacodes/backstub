@@ -1,4 +1,4 @@
-[![GitHub Release](https://img.shields.io/github/release/tterb/PlayMusic.svg?style=flat)]()
+[![GitHub Release](https://img.shields.io/github/v/release/goshacodes/backstub?color=blue]()
 ## Backstub
 
 1. Tired of choosing between mocks and stubs?
