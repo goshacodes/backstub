@@ -16,7 +16,6 @@ lazy val backstub = (project in file("."))
 
 inThisBuild(
   Seq(
-    scalaVersion := "3.4.3",
     organization := "io.github.goshacodes",
     homepage := Some(url("https://https://github.com/goshacodes/backstub")),
     licenses := List("Apache-2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")),
