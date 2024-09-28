@@ -179,7 +179,7 @@ It won't block your stub generation, but you won't set up an expectation:
 3. Probably something else is not supported, you can always open an issue to discuss and a PR
 
 ## Gratitudes
-If this library makes you so incredibly happy, that you really want to donate - contact me using link in profile
+If this library makes you so incredibly happy, that you really want to donate - contact me using link in github profile
 
 ## Search Optimization
 scala tests, scala test, testing in scala, scala testing, scalatest, specs2, scalamock, zio mock, mockito scala
