@@ -81,7 +81,7 @@ new Foo:
 ### Expect
 
 Compile time configuration allowing you to setup stub methods results.   
-Expectation on method could be set only once, so if you want to differentiate calls - use different data.    
+Expectation on method can be set only once, so if you want to differentiate calls - use different data.    
 This also generates a collector for your calls.
 
 ```scala 3
