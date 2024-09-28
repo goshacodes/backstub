@@ -15,13 +15,16 @@ How it works:
 
 ## Setup
 
+Add to your build.sbt
+
 ```scala
 libraryDependencies += "io.github.goshacodes" %% "backstub" % "<version_from_badge>"
 ```
 
-Library hugely relies on experimental scala 3 features, so consider adding:
+Library hugely relies on experimental scala 3 features, so consider also adding
+
 ```scala
-Test \ scalacOptions += "experimental"
+Test \ scalacOptions += "-experimental"
 ```
 
 ## API
