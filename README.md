@@ -13,6 +13,12 @@ How it works:
 2. Setup expected results based on input arguments per suit or per test-case
 3. After stubs were used - get the data passed through the method and verify
 
+## Dependency
+
+```scala
+libraryDependencies += "io.github.goshacodes" %% "backstub" % "<version_from_badge>"
+```
+
 ## API
 
 ### Stubs
