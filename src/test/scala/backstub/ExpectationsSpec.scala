@@ -2,7 +2,7 @@ package backstub
 
 import backstub.*
 
-class ExpectationsSpec extends munit.FunSuite with Stubs {
+class ExpectationsSpec extends munit.FunSuite with Stubs:
 
   override def afterEach(context: AfterEach) =
     resetStubs()
@@ -20,7 +20,7 @@ class ExpectationsSpec extends munit.FunSuite with Stubs {
   test("zero args"):
     val foo = stub[Foo]:
       Expect[Foo]
-        .method[String](_.zeroArgs).returnsOnly("5")
+        .method(_.zeroArgs).returnsOnly("5")
 
     val res = foo.zeroArgs
     foo.zeroArgs
@@ -83,4 +83,3 @@ class ExpectationsSpec extends munit.FunSuite with Stubs {
     assert(secondCalls == List((1, true)))
     assert(thirdCallsTimes == 1)
 
-}

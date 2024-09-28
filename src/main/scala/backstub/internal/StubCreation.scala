@@ -163,6 +163,9 @@ class StubCreation(using override val quotes: Quotes) extends StubUtils:
         } =>
           val method = methods.searchMethod(select.asTerm, None, TypeRepr.of[res])
 
+          if (expectations.exists(_._1.symbol == method.symbol))
+            report.errorAndAbort(s"Expectation for ${select.asTerm.show(using Printer.TreeShortCode)} is already set")
+
           val expectation = Expectation(value.asTerm)
           loop(rest, (method -> expectation) :: expectations)
 
@@ -172,6 +175,9 @@ class StubCreation(using override val quotes: Quotes) extends StubUtils:
             .returns(${apply}: arg => res)
         } =>
           val method = methods.searchMethod(select.asTerm, Some(TypeRepr.of[Tuple1[arg]]), TypeRepr.of[res])
+
+          if (expectations.exists(_._1.symbol == method.symbol))
+            report.errorAndAbort(s"Expectation for ${select.asTerm.show(using Printer.TreeShortCode)} is already set")
 
           val expectation = Expectation(apply.asTerm)
           loop(rest, (method -> expectation) :: expectations)
@@ -184,6 +190,10 @@ class StubCreation(using override val quotes: Quotes) extends StubUtils:
             .returns((${apply}: args => res))
         } =>
           val method = methods.searchMethod(select.asTerm, Some(TypeRepr.of[args]), TypeRepr.of[res])
+
+          if (expectations.exists(_._1.symbol == method.symbol))
+            report.errorAndAbort(s"Expectation for ${select.asTerm.show(using Printer.TreeShortCode)} is already set")
+
           val expectation = Expectation(apply.asTerm)
           loop(rest, (method -> expectation) :: expectations)
 
