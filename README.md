@@ -8,13 +8,9 @@
 
 Then you've come to the right place, meet **backstub** - stubbing library for Scala 3 inspired by [scalamock](https://github.com/paulbutcher/ScalaMock) and compatible with any testing framework out of the box
 
-How it works:
-1. Setup cleanup after each test-case
-2. Setup expected results based on input arguments per suit or per test-case
-3. After stubs were used - get the data passed through the method and verify
-
 ## Setup
 
+### Basic
 Add to your build.sbt
 
 ```scala
@@ -27,9 +23,23 @@ Library hugely relies on experimental scala 3 features, so consider also adding
 Test \ scalacOptions += "-experimental"
 ```
 
+### ZIO
+
+For ZIO integration also add:
+```scala
+libraryDependencies += "io.github.goshacodes" %% "backstub-zio" % "<version_from_badge>"
+```
+
+### Cats Effect
+
+For Cats Effect integration also add:
+```scala
+libraryDependencies += "io.github.goshacodes" %% "backstub-cats-effect" % "<version_from_badge>"
+```
+
 ## API
 
-### Stubs
+### Basic Stubs
 
 Should be mixed with your test-suite, to provide clean-up API
 
@@ -37,10 +47,9 @@ Should be mixed with your test-suite, to provide clean-up API
 package backstub
 
 trait Stubs:
-  given stubs: CreatedStubs = CreatedStubs()
+  final given stubs: CreatedStubs = CreatedStubs()
 
-  def resetStubs(): Unit = stubs.clearAll()
-
+  final def resetStubs(): Unit = stubs.clearAll()
 ```
 
 Using it as simple as:
@@ -52,6 +61,48 @@ class MySpec extends munit.FunSuite with Stubs:
   override def afterEach(context: AfterEach) =
     resetStubs()
     
+```
+
+### ZIO Stubs
+
+Gives you instance of StubEffect, allowing to integrate ZIO
+
+```scala 3
+package backstub
+
+import zio.*
+
+trait ZIOStubs extends Stubs:
+  // this method is actually in Stubs
+  final def resetStubsIO[F[+_, +_]: StubEffect]: F[Nothing, Unit] =
+    summon[StubEffect[F]].unit(resetStubs())
+    
+  given effect.StubEffect[IO] with
+    def unit[T](t: => T): UIO[T] = ZIO.succeed(t)
+    def flatMap[E, EE >: E, T, T2](fa: IO[E, T])(f: T => IO[EE, T2]): IO[EE, T2] = fa.flatMap(f)
+
+
+```
+
+### Cats Stubs
+
+Gives you instance of StubEffect.Mono, allowing to integrate Cats Effect
+
+```scala 3
+package backstub
+
+import cats.effect.*
+
+trait CatsEffectStubs extends Stubs:
+  // this method is actually in Stubs
+  final def resetStubsF[F[+_]: StubEffect.Mono]: F[Unit] =
+    summon[StubEffect.Mono[F]].unit(resetStubs())
+
+  given StubEffect.Mono[IO] = new StubEffect.Mono[IO]:
+    def unit[T](t: => T): IO[T] = IO(t)
+    def flatMap[E, EE >: E, T, T2](fa: IO[T])(f: T => IO[T2]): IO[T2] = fa.flatMap(f)
+
+
 ```
 
 ### stub
@@ -132,6 +183,14 @@ inline given Expect[Foo] = Expect[Foo]
 val foo = stub[Foo]
 ```
 
+### ZIO Expect
+
+The only difference is - you should choose method using `methodIO`.
+
+### Cats Effect Expect
+
+The only difference is - you should choose method using `methodF0` (if no arguments) or `methodF`.
+
 
 ### Verify
 
@@ -160,6 +219,14 @@ foo.times(_.twoArgs) // 1
 foo.calls(_.twoArgs) // List((5, "foo"))
 
 ```
+
+### Verify ZIO
+
+You can use `callsIO` and `timesIO` methods
+
+### Verify Cats Effect
+
+You can use `callsF` and `timesF` methods
 
 ### Overloaded methods
 

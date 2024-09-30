@@ -4,7 +4,7 @@ lazy val backstub = project
   .in(file("."))
   .settings(
     commonSettings,
-    publishTo := None
+    publish / skip := true
   )
   .dependsOn(core, cats, zio)
   .aggregate(core, cats, zio)
@@ -30,7 +30,7 @@ lazy val core = project.in(modules / "core")
   )
 
 lazy val zio = project.in(modules / "zio")
-  .dependsOn(core % "compile->compile;compile->test")
+  .dependsOn(core)
   .settings(
     name := "backstub-zio",
     commonSettings,
@@ -74,3 +74,4 @@ inThisBuild(
 )
 
 sonatypeRepository := "https://s01.oss.sonatype.org/service/local"
+

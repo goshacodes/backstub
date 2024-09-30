@@ -7,5 +7,8 @@ trait Stubs:
 
   final def resetStubs(): Unit = stubs.clearAll()
 
+  final def resetStubsF[F[+_]: StubEffect.Mono]: F[Unit] =
+    summon[StubEffect.Mono[F]].unit(resetStubs())
+
   final def resetStubsIO[F[+_, +_]: StubEffect]: F[Nothing, Unit] =
     summon[StubEffect[F]].unit(resetStubs())
