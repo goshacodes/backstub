@@ -7,6 +7,8 @@ private[backstub] trait StubUtils(using
     val quotes: Quotes
 ):
   import quotes.reflect.*
+  
+  val clearStubsMethodName = "stubs$macro$clear"
 
   def tupled(args: List[Term]) =
     args.foldRight[Term]('{ EmptyTuple }.asTerm) { (el, acc) =>

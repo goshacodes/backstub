@@ -181,9 +181,9 @@ val overloaded = stub[Overloaded]:
 ```
 
 ## Example
-Model - [SessionCheckService.scala](./src/test/scala/backstub/SessionCheckService.scala)
+Model - [SessionCheckService.scala](modules/core/src/test/scala/backstub/SessionCheckService.scala)
 
-Suite - [SessionCheckServiceSpec.scala](./src/test/scala/backstub/SessionCheckServiceSpec.scala)
+Suite - [SessionCheckServiceSpec.scala](modules/core/src/test/scala/backstub/SessionCheckServiceSpec.scala)
 
 ## Notes
 Only basic functionality is supported by now.  

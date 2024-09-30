@@ -2,11 +2,17 @@ package backstub
 
 import backstub.*
 
-class ExpectationsSpec extends munit.FunSuite with Stubs:
+class ExpectationsSpec extends munit.FunSuite, Stubs:
 
   override def afterEach(context: AfterEach) =
     resetStubs()
 
+  trait Overlap:
+    def overlap(x: Int): scala.Predef.String
+
+  val overlap = stub[Overlap]:
+    Expect[Overlap]
+      .method(_.overlap).returns(_ => "foo")
 
   trait Foo:
     def twoArgs(x: Int, y: String): Option[String]
@@ -31,6 +37,9 @@ class ExpectationsSpec extends munit.FunSuite with Stubs:
     assert(res == "5")
     assert(callsCount == 3)
 
+    overlap.overlap(1)
+
+
   test("one arg"):
     val foo = stub[Foo]:
       Expect[Foo]
@@ -42,6 +51,7 @@ class ExpectationsSpec extends munit.FunSuite with Stubs:
     val res = foo.oneArg(1)
     val res2 = foo.oneArg(0)
 
+    assert(overlap.times(_.overlap) == 0)
     assert(res == 2)
     assert(res2 == 3)
     assert(foo.calls(_.oneArg) == List(1, 0))
