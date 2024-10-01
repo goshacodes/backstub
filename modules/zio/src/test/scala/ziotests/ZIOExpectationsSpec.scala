@@ -52,7 +52,6 @@ object ZIOExpectationsSpec extends ZIOSpecDefault, ZIOStubs:
       .methodIO(_.overloaded: String => UIO[Boolean]).returns(x => ZIO.succeed(true))
       .methodIO(_.overloaded: (Int, Boolean) => UIO[Int]).returns((x, y) => ZIO.succeed(1))
 
-
   override def spec: Spec[TestEnvironment & Scope, Any] =
     suite("check expectations with zio")(
       test("zero args"):

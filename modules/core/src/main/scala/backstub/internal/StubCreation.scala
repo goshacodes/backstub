@@ -34,16 +34,10 @@ class StubCreation(using Quotes) extends StubUtils:
             )
           ),
           expectation.map { expectation =>
-            val tpe = expectation.apply.tpe.asType match
-              case '[args => res] =>
-                TypeRepr.of[AtomicReference[List[args]]]
-              case '[res] =>
-                TypeRepr.of[AtomicReference[List[Unit]]]
-
             Symbol.newVal(
               parent = classSymbol,
               name = method.callsValName,
-              tpe = tpe,
+              tpe = TypeRepr.of[AtomicReference[List[Any]]],
               flags = Flags.EmptyFlags,
               privateWithin = Symbol.noSymbol
             )
@@ -95,7 +89,7 @@ class StubCreation(using Quotes) extends StubUtils:
         )
       )
     )
-
+    
     val instance = Block(
       List(classDef),
       Typed(
@@ -111,11 +105,9 @@ class StubCreation(using Quotes) extends StubUtils:
     }
 
   private case class Expectation(apply: Term, monad: Option[(Term, TypeTree, TypeTree)]):
-    val argsTpe = apply.tpe.asType match
-      case '[args => res] =>
-        TypeRepr.of[args]
-      case '[res] =>
-        TypeRepr.of[Unit]
+    val argsTpe = TypeRepr.of[Any]
+        
+    
 
     private def wrapWithEffect(
       monad: Term,
@@ -153,19 +145,19 @@ class StubCreation(using Quotes) extends StubUtils:
 
 
     def buildBody(classSymbol: Symbol, method: Method, params: List[List[Tree | Term]]) =
-      params match
+      val body = params match
         case List(params) =>
           apply.tpe.asType match
             case '[argsType => resType] =>
-              val calls = Ref(classSymbol.declaredField(method.callsValName)).asExprOf[AtomicReference[List[argsType]]]
+              val calls = Ref(classSymbol.declaredField(method.callsValName)).asExprOf[AtomicReference[List[Any]]]
               val tupledArgs = params.collect { case term: Term => term } match
                 case Nil => report.errorAndAbort("Unexpected error occurred, please open an issue")
                 case arg :: Nil => arg
                 case args => tupled(args)
 
-              val updateCalls = '{${ calls }.getAndUpdate(_ :+ ${ tupledArgs.asExprOf[argsType] })}
+              val updateCalls = '{${ calls }.getAndUpdate(_ :+ ${ tupledArgs.asExprOf[Any] })}
               val buildResult = Select.unique(apply, "apply").appliedTo(tupledArgs)
-              val body = monad match
+              monad match
                 case None =>
                   '{
                     ${updateCalls}
@@ -174,15 +166,14 @@ class StubCreation(using Quotes) extends StubUtils:
                 case Some((monad, errorTpt, tpt)) =>
                   wrapWithEffect(monad, errorTpt, tpt, updateCalls.asTerm, buildResult)
 
-              body.changeOwner(method.symbol.overridingSymbol(classSymbol))
 
 
         case Nil =>
           apply.tpe.asType match
             case '[resType] =>
-              val calls = Ref(classSymbol.declaredField(method.callsValName)).asExprOf[AtomicReference[List[Unit]]]
+              val calls = Ref(classSymbol.declaredField(method.callsValName)).asExprOf[AtomicReference[List[Any]]]
               val updateCalls = '{ ${ calls }.getAndUpdate(_ :+ ()) }
-              val body = monad match
+              monad match
                 case None =>
                   '{
                     ${ updateCalls }
@@ -191,11 +182,39 @@ class StubCreation(using Quotes) extends StubUtils:
                 case Some((monad, errorTpt, tpt)) =>
                   wrapWithEffect(monad, errorTpt, tpt, updateCalls.asTerm, apply)
 
-              body.changeOwner(method.symbol.overridingSymbol(classSymbol))
 
+        case params =>
+          val onlyArgs = params.map(_.collect { case term: Term => term } )
+          val calls = Ref(classSymbol.declaredField(method.callsValName)).asExprOf[AtomicReference[List[Any]]]
+          def listTupled(args: List[Term]) = args match
+            case Nil => report.errorAndAbort("Unexpected error occurred, please open an issue")
+            case arg :: Nil => arg
+            case args => tupled(args)
 
-        case _ =>
-          report.errorAndAbort(s"Unknown param clause ${params.map(_.map(_.show(using Printer.TreeStructure)))}")
+          val tupledLists = onlyArgs.map(listTupled(_))
+          val tupledFirst = List(listTupled(onlyArgs.head)) :: onlyArgs.tail
+
+          val updateCalls = '{${ calls }.getAndUpdate(_ :+ ${ tupled(tupledLists).asExprOf[Any] })}
+          
+          val argsApplied = tupledFirst
+            .foldLeft(apply) { (applied, args) => Apply(Select.unique(applied, "apply"), args) }
+          
+          argsApplied.tpe.asType match
+            case '[resType] =>
+              monad match
+                case None =>
+                  '{
+                    ${ updateCalls }
+                    ${ argsApplied.asExprOf[resType] }
+                  }.asTerm
+                case Some((monad, errorTpt, tpt)) =>
+                  wrapWithEffect(monad, errorTpt, tpt, updateCalls.asTerm, apply)
+      end body
+      
+      body.changeOwner(method.symbol.overridingSymbol(classSymbol))
+      
+    end buildBody
+    
 
   private def parentsOf[T: Type]: List[TypeTree] =
     val tpe = TypeRepr.of[T]
@@ -383,7 +402,6 @@ class StubCreation(using Quotes) extends StubUtils:
         case expr =>
           expr.asTerm match
             case MethodIO(rest, select, apply, monad, effectTpt, errorTpt, resultTpt, argsTpt) =>
-
               val method = methods.searchMethod(select, Some(argsTpt.tpe), effectTpt.tpe.appliedTo(List(errorTpt.tpe, resultTpt.tpe)))
 
               val expectation = Expectation(apply, Some((monad, errorTpt, resultTpt)))

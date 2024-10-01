@@ -37,6 +37,30 @@ private[backstub] trait StubUtils(using
     def searchMethod(select: Term, argsTpe: Option[TypeRepr], resTpe: TypeRepr): Method =
       val (name, appliedTypes) = searchMethodNameAndAppliedTypes(select)
 
+      def resolveResType(name: String, tpe: TypeRepr, args: List[TypeRepr]): (List[TypeRepr], TypeRepr) =
+        val isFunction = tpe.typeSymbol.name.contains("Function") && tpe.typeSymbol.owner.name == "scala"
+        tpe match
+          case AppliedType(tycon, types) if isFunction =>
+            resolveResType(name, types.last, args ++ types.init)
+          case other =>
+            (args, other)
+
+
+      def resolveMethodType(tpe: TypeRepr): (List[TypeRepr], TypeRepr) =
+        tpe match
+          case MethodType(_, types, resTpe: MethodType) =>
+            val (otherTypes, res) = resolveMethodType(resTpe)
+            (types ++ otherTypes, res)
+
+          case MethodType(_, types, resTpe) =>
+            (types, resTpe)
+
+          case ByNameType(tpe) =>
+            (Nil, tpe)
+
+          case tpe =>
+            (Nil, TypeRepr.of[Nothing])
+
       @tailrec
       def resolveTuples(tpe: TypeRepr, acc: List[TypeRepr] = Nil): List[TypeRepr] =
         tpe.asType match
@@ -54,17 +78,13 @@ private[backstub] trait StubUtils(using
           List(tpe)
 
       methods.find { method =>
-        val (methodArgsTpes, methodResTpe) = method.symbol.info match
-          case MethodType(_, types, resTpe) =>
-            (types, resTpe)
-          case ByNameType(tpe) =>
-            (Nil, tpe)
-          case tpe =>
-            (Nil, TypeRepr.of[Nothing])
+        val (methodArgsTpes, methodResTpe) = resolveMethodType(method.symbol.info)
+        val (resTypeArgsTpes, finalResTpe) = resolveResType(name, resTpe, Nil)
+        val finalArgTpes = argsTpes ++ resTypeArgsTpes
 
         name == method.symbol.name &&
-        resTpe <:< methodResTpe &&
-        argsTpes.zipAll(methodArgsTpes, TypeRepr.of[Any], TypeRepr.of[Nothing]).forall(_ <:< _)
+        finalResTpe <:< methodResTpe &&
+        finalArgTpes.zipAll(methodArgsTpes, TypeRepr.of[Any], TypeRepr.of[Nothing]).forall(_ <:< _)
       }.getOrElse(report.errorAndAbort(s"Method signature not yet supported: ${select.show}"))
 
   private def searchMethodNameAndAppliedTypes(select: Term) =

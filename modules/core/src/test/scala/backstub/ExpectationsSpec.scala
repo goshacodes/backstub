@@ -21,6 +21,9 @@ class ExpectationsSpec extends munit.FunSuite, Stubs:
     def overloaded(x: Int, y: Boolean): Int
     def overloaded(x: String): Boolean
     def overloaded: String
+    def curried(x: Int)(y: String): String
+    def otherCurried(x: Int, y: String)(z: Boolean, foo: Long): Int
+    def oneMoreCurried(x: Int)(y: String)(z: Boolean, foo: Long): Int
 
 
   test("zero args"):
@@ -93,3 +96,24 @@ class ExpectationsSpec extends munit.FunSuite, Stubs:
     assert(secondCalls == List((1, true)))
     assert(thirdCallsTimes == 1)
 
+  test("curried"):
+    val foo = stub[Foo]:
+      Expect[Foo]
+        .method(_.curried).returns(x => y => "")
+        .method(_.otherCurried).returns((a, b) => (c, d) => 5)
+        .method(_.oneMoreCurried).returns(a => b => (c, d) => 6)
+
+    foo.curried(1)("2")
+    foo.curried(2)("3")
+    foo.otherCurried(1, "2")(true, 5)
+    foo.otherCurried(2, "3")(false, 6)
+
+    foo.oneMoreCurried(1)("2")(false, 5)
+    foo.oneMoreCurried(2)("3")(true, 6)
+
+    val firstCalls = foo.calls(_.curried)
+    val secondCalls = foo.calls(_.otherCurried)
+    val thirdCalls = foo.calls(_.oneMoreCurried)
+    assert(firstCalls == List((1, "2"), (2, "3")))
+    assert(secondCalls == List(((1, "2"), (true, 5)), ((2, "3"), (false, 6))))
+    assert(thirdCalls == List((1, "2", (false, 5)), (2, "3", (true, 6))))
