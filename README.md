@@ -247,6 +247,29 @@ val overloaded = stub[Overloaded]:
     .method(_.overloaded: (Int, Boolean) => Int).returns((x, y) => x)
 ```
 
+### Generic types support
+
+Current implementation has restriction of 1 expectation per method.
+It is same for generic types (Maybe it will change in the future if I find a solution).
+
+```scala 3
+import backstub.*
+
+trait TypeArgs:
+  def typeArgs[A](x: A): A
+
+val typeArgsStub = stub[TypeArgs]:
+  Expect[TypeArgs]:
+    .method(_.typeArgs[Int]).returns(x => x)
+
+typeArgsStub.typeArgs[Int](2)
+
+typeArgsStub.times(_.typeArgs)
+typeArgsStub.calls(_.typeArgs)
+
+```
+
+
 ## Example
 Model - [SessionCheckService.scala](modules/core/src/test/scala/backstub/SessionCheckService.scala)
 
