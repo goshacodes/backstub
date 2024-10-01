@@ -19,5 +19,5 @@ object StubEffect:
     private[backstub]
     def flatMapNotFailing[EE, T, T2](fa: F[T])(f: T => F[T2]): F[T2] =
       flatMap(fa)(f)
-    
+
 
