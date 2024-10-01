@@ -41,7 +41,7 @@ libraryDependencies += "io.github.goshacodes" %% "backstub-cats-effect" % "<vers
 
 ### Basic Stubs
 
-Should be mixed with your test-suite, to provide clean-up API
+Should be mixed with your test-suite, to provide clean-up API if you create your stubs per suite
 
 ```scala 3
 package backstub
