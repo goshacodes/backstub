@@ -252,14 +252,6 @@ Model - [SessionCheckService.scala](modules/core/src/test/scala/backstub/Session
 
 Suite - [SessionCheckServiceSpec.scala](modules/core/src/test/scala/backstub/SessionCheckServiceSpec.scala)
 
-## Notes
-Only basic functionality is supported by now.  
-
-It won't block your stub generation, but you won't set up an expectation:
-1. Methods with type parameters are not supported
-2. Curried methods are not supported
-3. Probably something else is not supported, you can always open an issue to discuss and a PR
-
 ## Gratitudes
 If this library makes you so incredibly happy, that you really want to donate - contact me using link in github profile
 
