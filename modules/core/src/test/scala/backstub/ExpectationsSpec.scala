@@ -24,6 +24,8 @@ class ExpectationsSpec extends munit.FunSuite, Stubs:
     def curried(x: Int)(y: String): String
     def otherCurried(x: Int, y: String)(z: Boolean, foo: Long): Int
     def oneMoreCurried(x: Int)(y: String)(z: Boolean, foo: Long): Int
+    def typeArgs[A, B](x: A, y: String): B
+    def typeArgsOpt[A](x: A): Option[A]
 
 
   test("zero args"):
@@ -117,3 +119,18 @@ class ExpectationsSpec extends munit.FunSuite, Stubs:
     assert(firstCalls == List((1, "2"), (2, "3")))
     assert(secondCalls == List(((1, "2"), (true, 5)), ((2, "3"), (false, 6))))
     assert(thirdCalls == List((1, "2", (false, 5)), (2, "3", (true, 6))))
+
+  test("type args"):
+    val foo = stub[Foo]:
+      Expect[Foo]
+        .method(_.typeArgs[Int, String]).returns((x, y) => "foo")
+        .method(_.typeArgsOpt[Int]).returns(x => Some(x))
+
+    val result = foo.typeArgs[Int, String](1, "1")
+    val result2 = foo.typeArgsOpt[Int](1)
+
+    assert(foo.times(_.typeArgs) == 1)
+    assert(foo.calls(_.typeArgs) == List((1, "1")))
+
+    assert(foo.times(_.typeArgsOpt) == 1)
+    assert(foo.calls(_.typeArgsOpt) == List(1))

@@ -31,12 +31,76 @@ private[backstub] trait StubUtils(using
 
   case class Method(symbol: Symbol, idx: Int):
     val callsValName = s"calls$$${symbol.name}$$$idx"
-    val paramNames: List[String] = symbol.paramSymss.flatten.filterNot(_.isAbstractType).map(_.name)
+    val (argTypes, resTpe) = resolveMethodType(symbol.info)
+
+    def resolveParamRefs(resTpe: TypeRepr, methodArgs: List[List[Tree]]): TypeRepr =
+      val res = symbol.info match
+        case baseBindings: PolyType =>
+          def loop(typeRepr: TypeRepr): TypeRepr =
+            typeRepr match
+              case pr@ParamRef(bindings, idx) if bindings == baseBindings =>
+                methodArgs.head(idx).asInstanceOf[TypeTree].tpe
+
+              case AndType(left, right) =>
+                AndType(loop(left), loop(right))
+
+              case OrType(left, right) =>
+                OrType(loop(left), loop(right))
+
+              case AppliedType(tycon, args) =>
+                AppliedType(loop(tycon), args.map(arg => loop(arg)))
+
+              case ff@TypeRef(ref@ParamRef(bindings, idx), name) =>
+                def getIndex(bindings: TypeRepr): Int =
+                  @tailrec
+                  def loop(bindings: TypeRepr, idx: Int): Int =
+                    bindings match
+                      case MethodType(_, _, method: MethodType) => loop(method, idx + 1)
+                      case _ => idx
+
+                  loop(bindings, 1)
+
+                val maxIndex = methodArgs.length
+                val parameterListIdx = maxIndex - getIndex(bindings)
+
+                TypeSelect(methodArgs(parameterListIdx)(idx).asInstanceOf[Term], name).tpe
+
+              case other => other
+
+          loop(resTpe)
+        case _ =>
+          resTpe
+
+      res match
+        case ParamRef(_: NoPrefix, _) =>
+          TypeRepr.of[Nothing]
+        case _ =>
+          res
+
+
+    private def resolveMethodType(tpe: TypeRepr): (List[TypeRepr], TypeRepr) =
+      tpe match
+        case PolyType(_, _, resType: MethodType) =>
+          resolveMethodType(resType)
+
+        case MethodType(_, types, resTpe: MethodType) =>
+          val (otherTypes, res) = resolveMethodType(resTpe)
+          (types ++ otherTypes, res)
+
+        case MethodType(_, types, resTpe) =>
+          (types, resTpe)
+
+        case ByNameType(tpe) =>
+          (Nil, tpe)
+
+        case tpe =>
+          (Nil, TypeRepr.of[Nothing])
+
 
   extension (methods: List[Method])
     def searchMethod(select: Term, argsTpe: Option[TypeRepr], resTpe: TypeRepr): Method =
       val (name, appliedTypes) = searchMethodNameAndAppliedTypes(select)
-
+      
       def resolveResType(name: String, tpe: TypeRepr, args: List[TypeRepr]): (List[TypeRepr], TypeRepr) =
         val isFunction = tpe.typeSymbol.name.contains("Function") && tpe.typeSymbol.owner.name == "scala"
         tpe match
@@ -44,22 +108,6 @@ private[backstub] trait StubUtils(using
             resolveResType(name, types.last, args ++ types.init)
           case other =>
             (args, other)
-
-
-      def resolveMethodType(tpe: TypeRepr): (List[TypeRepr], TypeRepr) =
-        tpe match
-          case MethodType(_, types, resTpe: MethodType) =>
-            val (otherTypes, res) = resolveMethodType(resTpe)
-            (types ++ otherTypes, res)
-
-          case MethodType(_, types, resTpe) =>
-            (types, resTpe)
-
-          case ByNameType(tpe) =>
-            (Nil, tpe)
-
-          case tpe =>
-            (Nil, TypeRepr.of[Nothing])
 
       @tailrec
       def resolveTuples(tpe: TypeRepr, acc: List[TypeRepr] = Nil): List[TypeRepr] =
@@ -71,6 +119,19 @@ private[backstub] trait StubUtils(using
           case _ =>
             acc :+ tpe
 
+      def mapParamRefWithWildcard(tpe: TypeRepr): TypeRepr =
+        tpe match
+          case ParamRef(PolyType(_, bounds, _), idx) if appliedTypes.nonEmpty =>
+            appliedTypes(idx).tpe
+          case AppliedType(tycon, args) if appliedTypes.nonEmpty =>
+            tycon.appliedTo(args.map(mapParamRefWithWildcard(_)))
+          case _ =>
+            tpe
+
+      def resolveParamRefs(tpe: TypeRepr): TypeRepr =
+        mapParamRefWithWildcard(tpe)
+
+
       val argsTpes = argsTpe match
         case Some(AppliedType(_, types)) => types.flatMap(resolveTuples(_))
         case None                        => Nil
@@ -78,13 +139,12 @@ private[backstub] trait StubUtils(using
           List(tpe)
 
       methods.find { method =>
-        val (methodArgsTpes, methodResTpe) = resolveMethodType(method.symbol.info)
         val (resTypeArgsTpes, finalResTpe) = resolveResType(name, resTpe, Nil)
         val finalArgTpes = argsTpes ++ resTypeArgsTpes
 
         name == method.symbol.name &&
-        finalResTpe <:< methodResTpe &&
-        finalArgTpes.zipAll(methodArgsTpes, TypeRepr.of[Any], TypeRepr.of[Nothing]).forall(_ <:< _)
+        finalResTpe <:< resolveParamRefs(method.resTpe) &&
+        finalArgTpes.zipAll(method.argTypes.map(resolveParamRefs(_)), TypeRepr.of[Any], TypeRepr.of[Nothing]).forall(_ <:< _)
       }.getOrElse(report.errorAndAbort(s"Method signature not yet supported: ${select.show}"))
 
   private def searchMethodNameAndAppliedTypes(select: Term) =

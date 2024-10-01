@@ -20,6 +20,8 @@ class IOExpectationsSpec extends CatsEffectSuite, CatsEffectStubs:
     def overloaded(x: String): IO[Boolean]
 
     def overloaded: IO[String]
+    
+    def typeArgs[A, B](x: A): B
 
   val foo: Stub[Foo] = stub[Foo]:
     Expect[Foo]
@@ -59,4 +61,3 @@ class IOExpectationsSpec extends CatsEffectSuite, CatsEffectStubs:
     yield (times, calls)
 
     assertIO(result, (2, List((1, "foo"), (2, "bar"))))
-

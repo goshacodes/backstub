@@ -141,7 +141,7 @@ private[backstub] class StubCreation(using
           )
 
     def buildBody(classSymbol: Symbol, method: Method, params: List[List[Tree | Term]]) =
-      val args = params.map { _.collect { case term: Term => term } }
+      val args = params.map { _.collect { case term: Term => term } }.filterNot(_.isEmpty)
       val calls = Ref(classSymbol.declaredField(method.callsValName)).asExprOf[AtomicReference[List[Any]]]
       val (argsToUpdate, result) = args match
         case Nil =>
@@ -153,19 +153,19 @@ private[backstub] class StubCreation(using
             case args       => tupled(args)
 
           val result = (List(listTupled(args.head)) :: args.tail)
-            .foldLeft(apply) { (applied, args) => Apply(Select.unique(applied, "apply"), args) }
+            .foldLeft(apply) { (applied, args) => Apply(Select.unique(applied, "apply"), args.map(Select.unique(_, "asInstanceOf"))) }
           
           (listTupled(args.map(listTupled)), result)
 
       val updateCalls = '{ ${ calls }.getAndUpdate(_ :+ ${ argsToUpdate.asExprOf[Any] }) }
 
-      val body = result.tpe.asType match
+      val body = method.resolveParamRefs(method.resTpe, params).asType match
         case '[res] =>
           monad match
             case None =>
               '{
                 ${ updateCalls }
-                ${ result.asExprOf[res] }
+                ${ result.asExprOf[Any] }.asInstanceOf[res]
               }.asTerm
             case Some((monad, errorTpt, tpt)) =>
               wrapWithEffect(monad, errorTpt, tpt, updateCalls.asTerm, result)
