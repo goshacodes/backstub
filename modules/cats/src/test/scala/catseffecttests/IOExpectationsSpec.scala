@@ -20,8 +20,10 @@ class IOExpectationsSpec extends CatsEffectSuite, CatsEffectStubs:
     def overloaded(x: String): IO[Boolean]
 
     def overloaded: IO[String]
-    
-    def typeArgs[A, B](x: A): B
+
+    def typeArgsOptIO[A](value: A): IO[Option[A]]
+
+    def typeArgsOptIOTwoParams[A](value: A, other: A): IO[Option[A]]
 
   val foo: Stub[Foo] = stub[Foo]:
     Expect[Foo]
@@ -31,6 +33,8 @@ class IOExpectationsSpec extends CatsEffectSuite, CatsEffectStubs:
       .methodF0(_.overloaded: IO[String]).returnsOnly(IO(""))
       .methodF(_.overloaded: String => IO[Boolean]).returns(x => IO(true))
       .methodF(_.overloaded: (Int, Boolean) => IO[Int]).returns((x, y) => IO(1))
+      .methodF(_.typeArgsOptIO[String]).returns(x => IO.some(x))
+      .methodF(_.typeArgsOptIOTwoParams[Int]).returns((x, y) => IO.some(x))
 
   test("zero args"):
     val result = for
@@ -61,3 +65,22 @@ class IOExpectationsSpec extends CatsEffectSuite, CatsEffectStubs:
     yield (times, calls)
 
     assertIO(result, (2, List((1, "foo"), (2, "bar"))))
+
+
+  test("type args one param"):
+    val result = for
+      result <- foo.typeArgsOptIO[String]("foo")
+      times <- foo.timesF(_.typeArgsOptIO)
+      calls <- foo.callsF(_.typeArgsOptIO)
+    yield (result, times, calls)
+
+    assertIO(result, (Some("foo"), 1, List("foo")))
+
+  test("type args two params"):
+    val result = for
+      result <- foo.typeArgsOptIOTwoParams[Int](1, 2)
+      times <- foo.timesF(_.typeArgsOptIOTwoParams)
+      calls <- foo.callsF(_.typeArgsOptIOTwoParams)
+    yield (result, times, calls)
+
+    assertIO(result, (Some(1), 1, List((1, 2))))

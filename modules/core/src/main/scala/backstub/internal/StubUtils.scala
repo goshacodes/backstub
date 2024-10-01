@@ -33,7 +33,7 @@ private[backstub] trait StubUtils(using
     val callsValName = s"calls$$${symbol.name}$$$idx"
     val (argTypes, resTpe) = resolveMethodType(symbol.info)
 
-    def resolveParamRefs(resTpe: TypeRepr, methodArgs: List[List[Tree]]): TypeRepr =
+    def resolveParamRefs(methodArgs: List[List[Tree]]): TypeRepr =
       val res = symbol.info match
         case baseBindings: PolyType =>
           def loop(typeRepr: TypeRepr): TypeRepr =
@@ -98,7 +98,7 @@ private[backstub] trait StubUtils(using
 
 
   extension (methods: List[Method])
-    def searchMethod(select: Term, argsTpe: Option[TypeRepr], resTpe: TypeRepr): Method =
+    def searchMethod(select: Term, argsTpe: Option[TypeRepr], resTpe: TypeRepr, searchCalls: Boolean = false): Method =
       val (name, appliedTypes) = searchMethodNameAndAppliedTypes(select)
       
       def resolveResType(name: String, tpe: TypeRepr, args: List[TypeRepr]): (List[TypeRepr], TypeRepr) =

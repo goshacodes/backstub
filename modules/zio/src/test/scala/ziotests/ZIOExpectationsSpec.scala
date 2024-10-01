@@ -31,6 +31,10 @@ object ZIOExpectationsSpec extends ZIOSpecDefault, ZIOStubs:
 
     def overloaded: UIO[String]
 
+    def typeArgsOptUIO[A](value: A): UIO[Option[A]]
+
+    def typeArgsOptUIOTwoParams[A](value: A, other: A): Task[Option[A]]
+
   val foo: Stub[Foo] = stub[Foo]:
     Expect[Foo]
       .methodIO(_.zeroArgsUIO).returnsOnly(ZIO.none)
@@ -51,6 +55,8 @@ object ZIOExpectationsSpec extends ZIOSpecDefault, ZIOStubs:
       .methodIO(_.overloaded: UIO[String]).returnsOnly(ZIO.succeed(""))
       .methodIO(_.overloaded: String => UIO[Boolean]).returns(x => ZIO.succeed(true))
       .methodIO(_.overloaded: (Int, Boolean) => UIO[Int]).returns((x, y) => ZIO.succeed(1))
+      .methodIO(_.typeArgsOptUIO[String]).returns(x => ZIO.some(x))
+      .methodIO(_.typeArgsOptUIOTwoParams[Int]).returns((x, y) => ZIO.some(x))
 
   override def spec: Spec[TestEnvironment & Scope, Any] =
     suite("check expectations with zio")(
@@ -73,7 +79,19 @@ object ZIOExpectationsSpec extends ZIOSpecDefault, ZIOStubs:
           times <- foo.timesIO(_.oneArgIO)
           calls <- foo.callsIO(_.oneArgIO)
           result = assertTrue(times == 1, calls == List(1))
-        yield result
+        yield result,
+      test("type args one param"):
+        for
+          result <- foo.typeArgsOptUIO[String]("foo")
+          times <- foo.timesIO(_.typeArgsOptUIO)
+          calls <- foo.callsIO(_.typeArgsOptUIO)
+        yield assertTrue(result.contains("foo"), times == 1, calls == List("foo")),
+      test("type args two params"):
+        for
+          result <- foo.typeArgsOptUIOTwoParams[Int](1, 2).repeatN(1)
+          times <- foo.timesIO(_.typeArgsOptUIOTwoParams)
+          calls <- foo.callsIO(_.typeArgsOptUIOTwoParams)
+        yield assertTrue(result.contains(1), times == 2, calls == List((1, 2), (1, 2)))
     ) @@ TestAspect.before(resetStubsIO) @@ TestAspect.sequential
 
 

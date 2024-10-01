@@ -11,7 +11,7 @@ class Calls(using Quotes) extends StubUtils:
     stub: Expr[T],
     select: Expr[T => R]
   ): Expr[Int] =
-    val method = methodsOf(TypeRepr.of[T]).searchMethod(select.asTerm, None, TypeRepr.of[R])
+    val method = methodsOf(TypeRepr.of[T]).searchMethod(select.asTerm, None, TypeRepr.of[R], searchCalls = true)
     '{
       ${ stub }
         .asInstanceOf[scala.reflect.Selectable]

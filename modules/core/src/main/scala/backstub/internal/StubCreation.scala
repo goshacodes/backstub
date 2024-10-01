@@ -109,37 +109,6 @@ private[backstub] class StubCreation(using
   private case class Expectation(apply: Term, monad: Option[(Term, TypeTree, TypeTree)]):
     val argsTpe = TypeRepr.of[Any]
 
-    private def wrapWithEffect(
-        monad: Term,
-        errorTpt: TypeTree,
-        resTpt: TypeTree,
-        updateCalls: Term,
-        buildResult: Term
-    ): Term =
-      val effectfulTpe = apply.tpe.asType match
-        case '[args => res] =>
-          TypeRepr.of[res]
-        case '[res] =>
-          TypeRepr.of[res]
-
-      effectfulTpe.asType match
-        case '[effResType] =>
-          Apply(
-            Apply(
-              TypeApply(
-                Select.unique(monad, "flatMap"),
-                List(TypeTree.of[Nothing], errorTpt, TypeTree.of[Unit], resTpt)
-              ),
-              List(
-                Apply(
-                  TypeApply(Select.unique(monad, "unit"), List(TypeTree.of[Unit])),
-                  List(updateCalls)
-                )
-              )
-            ),
-            List('{ (_: Unit) => ${ buildResult.asExprOf[effResType] } }.asTerm)
-          )
-
     def buildBody(classSymbol: Symbol, method: Method, params: List[List[Tree | Term]]) =
       val args = params.map { _.collect { case term: Term => term } }.filterNot(_.isEmpty)
       val calls = Ref(classSymbol.declaredField(method.callsValName)).asExprOf[AtomicReference[List[Any]]]
@@ -159,7 +128,7 @@ private[backstub] class StubCreation(using
 
       val updateCalls = '{ ${ calls }.getAndUpdate(_ :+ ${ argsToUpdate.asExprOf[Any] }) }
 
-      val body = method.resolveParamRefs(method.resTpe, params).asType match
+      val body = method.resolveParamRefs(params).asType match
         case '[res] =>
           monad match
             case None =>
@@ -168,7 +137,31 @@ private[backstub] class StubCreation(using
                 ${ result.asExprOf[Any] }.asInstanceOf[res]
               }.asTerm
             case Some((monad, errorTpt, tpt)) =>
-              wrapWithEffect(monad, errorTpt, tpt, updateCalls.asTerm, result)
+              result.tpe.asType match
+                case '[effResType] =>
+                  TypeApply(
+                    Select.unique(
+                      Apply(
+                        Apply(
+                          TypeApply(
+                            Select.unique(monad, "flatMap"),
+                            List(TypeTree.of[Nothing], errorTpt, TypeTree.of[Unit], tpt)
+                          ),
+                          List(
+                            Apply(
+                              TypeApply(Select.unique(monad, "unit"), List(TypeTree.of[Unit])),
+                              List(updateCalls.asTerm)
+                            )
+                          )
+                        ),
+                        List('{ (_: Unit) => ${ result.asExprOf[effResType] } }.asTerm)
+                      ),
+                      "asInstanceOf"
+                    ),
+                    List(TypeTree.of[res])
+                  )
+                  
+
 
       body.changeOwner(method.symbol.overridingSymbol(classSymbol))
 
