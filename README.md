@@ -275,11 +275,8 @@ Model - [SessionCheckService.scala](modules/core/src/test/scala/backstub/Session
 
 Suite - [SessionCheckServiceSpec.scala](modules/core/src/test/scala/backstub/SessionCheckServiceSpec.scala)
 
-## Gratitudes
-If this library makes you so incredibly happy, that you really want to donate - contact me using link in github profile
-
 ## Search Optimization
-scala tests, scala test, testing in scala, scala testing, scalatest, specs2, scalamock, zio mock, mockito scala
+scala tests, scala test, testing in scala, scala testing, scalatest, specs2, scalamock, zio mock, mockito scala, backstub, backstub scala
 
 
 
