@@ -1,12 +1,14 @@
 ![GitHub Release](https://img.shields.io/github/v/release/goshacodes/backstub?color=blue])
 
+THIS PROJECT IS NO LONGER SUPPORTED AND WILL BE DEPRECATED. SIMILAR IMPROVED API IS ADDED TO SCALAMOCK https://github.com/paulbutcher/ScalaMock
+
 ## Backstub
 
 1. Tired of choosing between mocks and stubs?
 2. Tired of argument matchers and thrown exceptions when expectations not met?
 3. Or you just don't like 'mocks/stubs' approach entirely?
 
-Then you've come to the right place, meet **backstub** - stubbing library for Scala 3 inspired by [scalamock](https://github.com/paulbutcher/ScalaMock) and compatible with any testing framework out of the box
+Then you've come to the right place, meet **backstub** - stubbing library for Scala 3 inspired by [scalamock]() and compatible with any testing framework out of the box
 
 ## Setup
 
