@@ -1,6 +1,6 @@
 ![GitHub Release](https://img.shields.io/github/v/release/goshacodes/backstub?color=blue])
 
-THIS PROJECT IS NO LONGER SUPPORTED AND WILL BE DEPRECATED. SIMILAR IMPROVED API IS ADDED TO SCALAMOCK https://github.com/paulbutcher/ScalaMock
+THIS PROJECT IS NO LONGER SUPPORTED. SIMILAR IMPROVED API IS ADDED TO SCALAMOCK https://github.com/paulbutcher/ScalaMock
 
 ## Backstub
 
